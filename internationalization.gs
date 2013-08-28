@@ -1,6 +1,10 @@
-function t(input) {
+function t(input, cachedLang) {
   var sourceLanguage = "en";
-  var targetLanguage = CacheService.getPublicCache().get('lang');
+  if (cachedLang) {
+    var targetLanguage = cachedLang;
+  } else {
+    var targetLanguage = CacheService.getPublicCache().get('lang');
+  }
   if (!targetLanguage) {
     targetLanguage = ScriptProperties.getProperty('lang');
     CacheService.getPublicCache().put('lang', targetLanguage, 5);
