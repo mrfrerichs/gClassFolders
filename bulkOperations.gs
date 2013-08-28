@@ -205,7 +205,8 @@ function bulkOperateOnStudents(e) {
   var operation = e.parameter.operation;
   var sheet = getRosterSheet();
   var dataRange = sheet.getDataRange();
-  var indices = returnIndices(dataRange);
+  var labelObject = this.labels();
+  var indices = returnIndices(dataRange, labelObject);
   var numStudents = parseInt(e.parameter.numStudents);
   // var allPeriods = e.parameter.allPeriods;
   var studentObjects = [];
