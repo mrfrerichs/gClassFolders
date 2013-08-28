@@ -5,11 +5,6 @@
 // Published under GNU General Public License, version 3 (GPL-3.0)
 // See restrictions at http://www.opensource.org/licenses/gpl-3.0.html
 
-//ChangeLog
-// version 1.1
-// Version 1 (9/20/2012)
-// Version 2 (TBD)
-
 
 var GCLASSICONURL = 'https://sites.google.com/site/gclassfolders/_/rsrc/1360538205205/config/customLogo.gif?revision=1';
 var GCLASSLAUNCHERICONURL = 'https://sites.google.com/site/gclassfolders/_/rsrc/1360538205205/config/customLogo.gif?revision=1';
@@ -418,6 +413,7 @@ function fixHeaders() {
 function createClassFolders(){ //Create student folders
   //this step looks to see if the currently logged in user is looking to 
   //transfer ownership of folders to another teacher
+  sortsheet();
   removeResumeTrigger();
   var lock = LockService.getPublicLock();
   lock.releaseLock();
@@ -433,8 +429,9 @@ function createClassFolders(){ //Create student folders
     var currUser = Session.getActiveUser().getEmail();
     var sheet = getRosterSheet(); 
     var dataRange = sheet.getDataRange().getValues();
-    var labelObject = labels;
-    returnIndices(dataRange)
+    var labelObject = this.labels();
+    var indices = returnIndices(dataRange, labelObject);
+    var lang = properties.lang;
     
     //get the top folder for active DBs, course folders, and archived course folders
     if (properties.mode == "school") {
@@ -444,19 +441,19 @@ function createClassFolders(){ //Create student folders
       }
       //School mode will rely on top level folders to help organize the active teacher class roots, active student class roots, and archived course roots
       if ((!properties.topActiveClassFolderId)||(properties.topActiveClassFolderId=='')) {
-        properties.topActiveClassFolderId = DocsList.createFolder(t('gClassFolders Active Teacher') + " " + this.labels().classes).getId();
+        properties.topActiveClassFolderId = DocsList.createFolder(t('gClassFolders Active Teacher', lang) + " " + labelObject.classes).getId();
         ScriptProperties.setProperties(properties);
       }
       if ((!properties.topActiveDBFolderId)||(properties.topActiveDBFolderId=='')) {
-        properties.topActiveDBFolderId = DocsList.createFolder(t('gClassFolders Active Student') + " " + this.labels().class + " " + t('folders')).getId();
+        properties.topActiveDBFolderId = DocsList.createFolder(t('gClassFolders Active Student', lang) + " " + labelObject.class + " " + t('folders')).getId();
         ScriptProperties.setProperties(properties);
       }
       if ((!properties.topClassArchiveFolderId)||(properties.topClassArchiveFolderId=='')) {
-        properties.topClassArchiveFolderId = DocsList.createFolder(t('gClassFolders Archived Teacher') + " " + this.labels().classes).getId();
+        properties.topClassArchiveFolderId = DocsList.createFolder(t('gClassFolders Archived Teacher', lang) + " " + labelObject.classes).getId();
         ScriptProperties.setProperties(properties);
       }
       if ((!properties.topDBArchiveFolderId)||(properties.topDBArchiveFolderId=='')) {
-        properties.topDBArchiveFolderId = DocsList.createFolder(t('gClassFolders Archived Student') + " " + this.labels().dropBoxes).getId();
+        properties.topDBArchiveFolderId = DocsList.createFolder(t('gClassFolders Archived Student', lang) + " " + labelObject.dropBoxes).getId();
         ScriptProperties.setProperties(properties);
       }
       try {
@@ -492,7 +489,7 @@ function createClassFolders(){ //Create student folders
     
     //This function adds robustness to the script by ensuring that we are looking in the correct
     //array indices for each of the elements.  If essential headers are missing, user is prompted to allow the script to auto-repair them.
-    var indices = returnIndices(dataRange);
+    var indices = returnIndices(dataRange, labelObject);
     saveIndices(indices);
     writeProperties();
     //Sort by class, period, and last name to help consolidate rosters.  
@@ -550,9 +547,11 @@ function createClassFolders(){ //Create student folders
       var rootStuFolderId = dataRange[i][indices.rsfIdIndex];
       var dropboxRootId = dataRange[i][indices.rsfIdIndex];
       var dropboxLabelId;
-      if (dropboxRootId!="") {
-        var dropbox = DocsList.getFolderById(dropboxRootId); //if student dropbox already exists in sheet 
-        dropboxLabelId = dropbox.getParents()[0].getId();  //find its parent folder id in case a new period folder is needed
+      if (i>0) {
+        if ((dataRange[i][indices.clsNameIndex]==dataRange[i-1][indices.clsNameIndex])&&(dataRange[i][indices.clsPerIndex]!=dataRange[i-1][indices.clsPerIndex])&&(dataRange[i][indices.dbfIdIndex]=="")) {
+          var dropbox = DocsList.getFolderById(dataRange[i-1][indices.rsfIdIndex]); //if student dropbox already exists in sheet 
+          dropboxLabelId = dropbox.getParents()[0].getId();  //find its parent folder id in case a new period folder is needed
+        }
       }
       var clsFolderId = dataRange[i][indices.crfIdIndex];
       var classViewId = dataRange[i][indices.cvfIdIndex];
@@ -566,7 +565,7 @@ function createClassFolders(){ //Create student folders
             var clsFolder = DocsList.createFolder(clsName);
           } catch(err)  {  
             if (err.message.search("too many times")>0) {
-              Browser.msgBox(t("You have exceeded your account quota for creating Folders.  Try waiting 24 hours and continue running from where you left off. For best results with this script, be sure you are using a Google Apps for EDU account. For quota information, visit https://docs.google.com/macros/dashboard"));
+              Browser.msgBox(t("You have exceeded your account quota for creating Folders.  Try waiting 24 hours and continue running from where you left off. For best results with this script, be sure you are using a Google Apps for EDU account. For quota information, visit https://docs.google.com/macros/dashboard", lang));
               return;
             }
           }
@@ -577,16 +576,16 @@ function createClassFolders(){ //Create student folders
           var clsFolderId = clsFolder.getId();
           dataRange[i][indices.crfIdIndex] = clsFolderId;
           clsFoldersCreated.push(clsName);
-          var classEdit = clsName +" - " + t("Edit");  
-          var classView = clsName +" - " + t("View"); 
-          var teacherFolderLabel = t("Teacher");
-          var tMessage = t("Folders created for") + " " + clsName;
+          var classEdit = clsName +" - " + t("Edit", lang);  
+          var classView = clsName +" - " + t("View", lang); 
+          var teacherFolderLabel = t("Teacher", lang);
+          var tMessage = t("Folders created for", lang) + " " + clsName;
           //treat the first listed teacher email as primary...allow secondary teachers to be added
           for (var j=0; j<tEmails.length; j++) {//Transfer ownership of rootFolder to teacher if teacher email is designated.  Check that designated email is not the user running the script.
             try {
               if (properties.mode=='school') {
                 //teacherRoots is an array of objects, retrieved from scriptDb store, containing the folder Ids of all teacher root folders (active and archived).
-                teacherRoots = moveToTeacherRoot(teacherRoots, tEmails[j], clsFolderId, topActiveClassFolder, topClassArchiveFolder, 'active');
+                teacherRoots = moveToTeacherRoot(teacherRoots, tEmails[j], clsFolderId, topActiveClassFolder, topClassArchiveFolder, 'active', lang);
                 //function above is used to create new teacher roots for users that don't yet have them and transfer a given folder
                 //into the active or archive root folder.  This is only ever used in school mode.
               } 
@@ -594,12 +593,12 @@ function createClassFolders(){ //Create student folders
                 DocsList.getFolderById(clsFolderId).addEditor(tEmails[j]); 
                 tMessage += ", " + tEmails[j] + " " + t("added as editor.");
               } else { //do this if teacher email is the same as that of the script user, or if tEmail is blank. This can only happen in teacher mode.
-                tMessage += t(", you're the teacher.");
+                tMessage += t(", you're the teacher.", lang);
                 sheet.getRange(i+1, indices.tShareStatusIndex+1).setValue(tMessage);  
               }
             } catch(err) {
               DocsList.getFolderById(clsFolderId).addEditor(tEmails[j]);
-              tMessage += t(", Error sharing folder for: ") + tEmails[j] + t("Error: ") + err;
+              tMessage += t(", Error sharing folder for: ", lang) + tEmails[j] + t("Error: ") + err;
             }
             sheet.getRange(i+1, indices.tShareStatusIndex+1).setValue(tMessage);
             if ((tEmails[j]!=userEmail)&&(editors.indexOf(tEmails[j])==-1)) {
@@ -627,7 +626,7 @@ function createClassFolders(){ //Create student folders
                 DocsList.getFolderById(rootStuFolderId).addEditor(tEmails[j]);
                 DocsList.getFolderById(teacherFId).addEditor(tEmails[j]);
               } catch (err) {
-                tMessage += t(", Error sharing folder for: ") + tEmails[j] + t("Error: ") + err;
+                tMessage += t(", Error sharing folder for: ", lang) + tEmails[j] + t("Error: ", lang) + err;
               }        
             }
           }
@@ -668,7 +667,7 @@ function createClassFolders(){ //Create student folders
         }
         //If a class period is chosen, look to see if it is new or already existing
         if (clsPer != "") {
-          var uniqueClasses = getUniqueClassPeriods(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex); //get unique ClassPer as array
+          var uniqueClasses = getUniqueClassPeriods(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex, labelObject); //get unique ClassPer as array
           if (uniqueClasses.indexOf(clsName + " " + periodLabel + " " + clsPer)==-1) { //look to see if this row's ClassPer exists in the array.  If not make a new student dropbox folder for the period
             rootStuFolderId = DocsList.getFolderById(dropboxLabelId).createFolder(clsName + " " + periodLabel + " " + clsPer + " " + dropBoxLabels).getId();
             clsFoldersCreated.push(clsName + " " + periodLabel + " " + clsPer);
@@ -682,9 +681,9 @@ function createClassFolders(){ //Create student folders
         
         //Create students
         var dbfId = dataRange[i][indices.dbfIdIndex];
-        var studentFolderObj = createDropbox(sLname,sFname,sEmail,clsName,classEditId,classViewId,rootStuFolderId,tEmails, userEmail, properties, dropBoxLabel);
+        var studentFolderObj = createDropbox(sLname,sFname,sEmail,clsName,classEditId,classViewId,rootStuFolderId,tEmails, userEmail, properties, dropBoxLabel, lang);
         if (properties.mode == 'school') {
-          studentRoots = moveToStudentRoot(studentRoots, sEmail, sFname, sLname, studentFolderObj.studentClassRootId, topActiveDBFolder, topDBArchiveFolder, 'active');
+          studentRoots = moveToStudentRoot(studentRoots, sEmail, sFname, sLname, studentFolderObj.studentClassRootId, topActiveDBFolder, topDBArchiveFolder, 'active', lang);
         }
         studentFoldersCreated++;
         var values = [];
@@ -699,16 +698,16 @@ function createClassFolders(){ //Create student folders
           dataRange[i][indices.scfIdIndex] = studentFolderObj.studentClassRootId;
         }
         
-        values[0].push('=hyperlink("'+ DocsList.getFolderById(studentFolderObj.studentDropboxId).getUrl() +'";"'+studentFolderObj.studentDropboxId + '")');
+        values[0].push('=hyperlink("'+ studentFolderObj.studentDropbox.getUrl() +'";"'+studentFolderObj.studentDropboxId + '")');
         values[0].push('=hyperlink("'+ DocsList.getFolderById(clsFolderId).getUrl() + '";"' + clsFolderId + '")');
-        values[0].push('=hyperlink("' + DocsList.getFolderById(classViewId).getUrl() + '";"' + classViewId + '")');
-        values[0].push('=hyperlink("' + DocsList.getFolderById(classEditId).getUrl() + '";"' + classEditId + '")');
-        values[0].push('=hyperlink("' + DocsList.getFolderById(rootStuFolderId).getUrl() + '";"' + rootStuFolderId + '")');
+        values[0].push('=hyperlink("' + studentFolderObj.classView.getUrl() + '";"' + classViewId + '")');
+        values[0].push('=hyperlink("' + studentFolderObj.classEdit.getUrl() + '";"' + classEditId + '")');
+        values[0].push('=hyperlink("' + studentFolderObj.rootStudentFolder.getUrl() + '";"' + rootStuFolderId + '")');
         values[0].push('=hyperlink("' + DocsList.getFolderById(teacherFId).getUrl() + '";"' + teacherFId + '")');
         if (properties.mode == 'teacher') {
           sheet.getRange(i+1, indices.dbfIdIndex + 1, 1, 6).setValues(values).setFontColor('black');
         } else {
-          values[0].push('=hyperlink("'+ DocsList.getFolderById(studentFolderObj.studentClassRootId).getUrl() +'";"'+studentFolderObj.studentClassRootId +'")');
+          values[0].push('=hyperlink("'+ studentFolderObj.studentClassRoot.getUrl() +'";"'+studentFolderObj.studentClassRootId +'")');
           sheet.getRange(i+1, indices.dbfIdIndex + 1, 1, 7).setValues(values).setFontColor('black');
         }
         
@@ -720,22 +719,22 @@ function createClassFolders(){ //Create student folders
     
     var msg = '';
     if (interrupted) {
-      msg += t('The folder creation process was interrupted and will restart automatically to avoid script timeout. Please allow the script at least 1 minute to resume before attempting to resume manually. ');
+      msg += t('The folder creation process was interrupted and will restart automatically to avoid script timeout. Please allow the script at least 1 minute to resume before attempting to resume manually. ', lang);
     }
     if (clsFoldersCreated.length>0) {
-      msg = t("Class folders were created for:") + "\\n" + clsFoldersCreated.join(", \\n") + "\\n \\n";
+      msg = t("Class folders were created for:", lang) + "\\n" + clsFoldersCreated.join(", \\n") + "\\n \\n";
     } 
     if (studentFoldersCreated>0) {
       ScriptProperties.setProperty('alreadyRan', 'true');
       onOpen();
-      msg += " " + studentFoldersCreated + t(" new ") + dropBoxLabels + t(" were created.") + "\\n \\n";
+      msg += " " + studentFoldersCreated + t(" new ", lang) + dropBoxLabels + t(" were created.", lang) + "\\n \\n";
     } else {
-      msg += t("No new folders were created.  Folders are only created for rows with a blank") + "\"" + t("Status: Student Dropbox") + "\" " + t("value") + "\\n \\n";
+      msg += t("No new folders were created.  Folders are only created for rows with a blank", lang) + "\"" + t("Status: Student Dropbox", lang) + "\" " + t("value", lang) + "\\n \\n";
     }
     lock.releaseLock();
     Browser.msgBox(msg);
   } else {
-    Browser.msgBox(t("It appears the folder creation process is already underway. Please don't interrupt!"));
+    Browser.msgBox(t("It appears the folder creation process is already underway. Please don't interrupt!", lang));
   }
 }
 
@@ -744,26 +743,24 @@ function createClassFolders(){ //Create student folders
 
 
 
-function createDropbox(sLnameF,sFnameF,sEmailF,clsNameF,classEditIdF,classViewIdF,rootStuFolderId,tEmails,userEmail, properties, dropboxLabel) {
-  try {
-    gClassFolders_logStudentFolderCreation();
-  } catch(e) {
-  }
+function createDropbox(sLnameF,sFnameF,sEmailF,clsNameF,classEditIdF,classViewIdF,rootStuFolderId,tEmails,userEmail, properties, dropboxLabel, lang) {
   var returnObject = new Object();
   if (properties.mode == 'school') {
     try {
-    var studentClassRoot = DocsList.createFolder(clsNameF).addViewer(sEmailF);
-    returnObject.studentClassRootId = studentClassRoot.getId();
+      var studentClassRoot = DocsList.createFolder(clsNameF);
+      returnObject.studentClassRootId = studentClassRoot.getId();
+      studentClassRoot.addViewer(sEmailF);
     } catch(err) {
       if (err.message.search("too many times")>0) {
-        Browser.msgBox(t("You have exceeded your account quota for creating Folders.  Try waiting 24 hours and continue running from where you left off. For best results with this script, be sure you are using a Google Apps for EDU account. For quota information, visit https://docs.google.com/macros/dashboard"));
+        Browser.msgBox(t("You have exceeded your account quota for creating Folders.  Try waiting 24 hours and continue running from where you left off. For best results with this script, be sure you are using a Google Apps for EDU account. For quota information, visit https://docs.google.com/macros/dashboard", lang));
         return;
       }
     }
   }
   var dropboxNameF = sLnameF + ", " + sFnameF + " - " + clsNameF + " - " + dropboxLabel;
-  var studentDropbox = DocsList.getFolderById(rootStuFolderId).createFolder(dropboxNameF);
-  returnObject.statusTagF = this.labels().dropBox + t(" created");
+  var rootStudentFolder = DocsList.getFolderById(rootStuFolderId);
+  var studentDropbox = rootStudentFolder.createFolder(dropboxNameF);
+  returnObject.statusTagF = dropboxLabel + t(" created", lang);
   try {
     var classEdit = DocsList.getFolderById(classEditIdF);
     var classView = DocsList.getFolderById(classViewIdF);
@@ -775,20 +772,25 @@ function createDropbox(sLnameF,sFnameF,sEmailF,clsNameF,classEditIdF,classViewId
     classEdit.addEditor(sEmailF);
     classView.addViewer(sEmailF);
     studentDropbox.addEditor(sEmailF);
-    returnObject.statusTagF += t(", and shared with ") + sEmailF;
+    returnObject.statusTagF += t(", and shared with ", lang) + sEmailF;
   } catch(e) {
-    Logger.log(t("Error with email") + " (" + sEmailF + "). " + e);
-    returnObject.statusTagF += t(", Error with Student email: folder created but not shared"); 
+    Logger.log(t("Error with email", lang) + " (" + sEmailF + "). " + e);
+    returnObject.statusTagF += t(", Error with Student email: folder created but not shared", lang); 
   }
   var studentDropboxId = studentDropbox.getId()
   returnObject.studentDropboxId = studentDropboxId;
+  returnObject.studentDropbox = studentDropbox;
+  returnObject.classEdit = classEdit;
+  returnObject.classView = classView;
+  returnObject.studentClassRoot = studentClassRoot;
+  returnObject.rootStudentFolder = rootStudentFolder;
   for (var j=0; j<tEmails.length;j++) {
     if ((tEmails[j] != "")&&(tEmails[j] != userEmail)) {  
       try {
         DocsList.getFolderById(studentDropboxId).addEditor(tEmails[j]); 
-        returnObject.statusTagF += t(", editing rights added for ") + tEmails[j];
+        returnObject.statusTagF += t(", editing rights added for ", lang) + tEmails[j];
       } catch(err) {
-        returnObject.statusTagF += t(", error giving editing rights to ") + tEmails[j] + "." + err;
+        returnObject.statusTagF += t(", error giving editing rights to ", lang) + tEmails[j] + "." + err;
       }
     }
   } 
