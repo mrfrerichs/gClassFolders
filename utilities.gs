@@ -145,10 +145,10 @@ function returnEmailAsArray(emailValue) {
 }
 
 
-function getUniqueClassPeriods(dataRange, clsNameIndex, clsPerIndex, rsfIdIndex) {
+function getUniqueClassPeriods(dataRange, clsNameIndex, clsPerIndex, rsfIdIndex, labelObject) {
   var classPers = [];
   for (var i=0; i<dataRange.length; i++) {
-    var thisClassPer = dataRange[i][clsNameIndex] + " " + this.labels().period + " " + dataRange[i][clsPerIndex];
+    var thisClassPer = dataRange[i][clsNameIndex] + " " + labelObject.period + " " + dataRange[i][clsPerIndex];
     var thisStudentRoot = dataRange[i][rsfIdIndex];
     if ((classPers.indexOf(thisClassPer)==-1)&&(thisClassPer!='')&&(thisStudentRoot!='')) {
       classPers.push(thisClassPer);
@@ -193,7 +193,7 @@ function getUniqueClassPeriodObjects(dataRange, clsNameIndex, clsPerIndex, rsfId
   for (var i=1; i<dataRange.length; i++) {
     var thisClassPer = dataRange[i][clsNameIndex];
     if (dataRange[i][clsPerIndex]!='') {
-      thisClassPer += " " + this.labels().period + " " + dataRange[i][clsPerIndex];
+      thisClassPer += " " + this.labels.period + " " + dataRange[i][clsPerIndex];
     }
     var thisStudentRoot = dataRange[i][rsfIdIndex];
     if ((processed.indexOf(thisClassPer)==-1)&&(thisClassPer!='')&&(thisStudentRoot!='')) {
@@ -243,7 +243,7 @@ function writeProperties() {
 }
 
 
-function returnIndices(dataRange) {
+function returnIndices(dataRange, labelObject) {
   var sheet = getRosterSheet();
   var lastCol = sheet.getLastColumn();
   var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
@@ -262,12 +262,12 @@ function returnIndices(dataRange) {
     badHeaders();
     return;
   }
-  var clsNameIndex  = headers.indexOf(this.labels().class +t(' Name'));
+  var clsNameIndex  = headers.indexOf(labelObject.class +t(' Name'));
   if (clsNameIndex==-1) {
     badHeaders();
     return;
   }
-  var clsPerIndex = headers.indexOf(this.labels().period + " ~" + t('Optional') + "~");
+  var clsPerIndex = headers.indexOf(labelObject.period + " ~" + t('Optional') + "~");
   if (clsNameIndex==-1) {
     badHeaders();
     return;
@@ -281,16 +281,16 @@ function returnIndices(dataRange) {
   //Add columns for tracking status of folder creation and share if they don't already exist
   //retrieve their indices
   
-  var sDropStatusIndex = headers.indexOf(t("Status: Student " + this.labels().dropBox));
+  var sDropStatusIndex = headers.indexOf(t("Status: Student " + labelObject.dropBox));
   if (sDropStatusIndex==-1) {
-    sheet.getRange(1,lastCol+1,1,2).setValues([[t("Status: Student " + this.labels().dropBox),t("Status: Teacher Share")]]).setComment(t("Don't change this header. When gClassFolders is run, class and dropbox folders will be created or updated for any students without a value in this column. To update a student's email address or name, just clear their status value and run again. To move students between classes, use the menu."));
-    headers.push(t("Status: Student ") + this.labels().dropbox);
+    sheet.getRange(1,lastCol+1,1,2).setValues([[t("Status: Student " + labelObject.dropBox),t("Status: Teacher Share")]]).setComment(t("Don't change this header. When gClassFolders is run, class and dropbox folders will be created or updated for any students without a value in this column. To update a student's email address or name, just clear their status value and run again. To move students between classes, use the menu."));
+    headers.push(t("Status: Student ") + labelObject.dropbox);
     headers.push(t("Status: Teacher Share"));
     SpreadsheetApp.flush()
   }
-  sDropStatusIndex = headers.indexOf(t("Status: Student " + this.labels().dropBox));
+  sDropStatusIndex = headers.indexOf(t("Status: Student " + labelObject.dropBox));
   var tShareStatusIndex = headers.indexOf(t("Status: Teacher Share"));
-  var dbfIdIndex = headers.indexOf(t('Student') + ' ' + this.labels().dropBox + ' Id');
+  var dbfIdIndex = headers.indexOf(t('Student') + ' ' + labelObject.dropBox + ' Id');
   if (dbfIdIndex==-1) {
     createFolderIdHeadings(); //create Folder ID headings if they don't exist
   }
@@ -299,13 +299,13 @@ function returnIndices(dataRange) {
   headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   //Get indices of folder Id columns
   var indices = new Object();
-  indices.dbfIdIndex = headers.indexOf(t('Student') + " " + this.labels().dropBox + ' Id');
+  indices.dbfIdIndex = headers.indexOf(t('Student') + " " + labelObject.dropBox + ' Id');
   indices.crfIdIndex = headers.indexOf(t('Class Root Folder') + ' Id');
   indices.cvfIdIndex = headers.indexOf(t('Class View Folder') + ' Id');
   indices.cefIdIndex = headers.indexOf(t('Class Edit Folder') + ' Id');
   indices.rsfIdIndex = headers.indexOf(t('Root Student Folder') + ' Id');
   indices.tfIdIndex = headers.indexOf(t('Teacher Folder') + ' Id');
-  indices.scfIdIndex = headers.indexOf(t('Student') + " " + this.labels().class + " " + t('Folder') + ' Id');
+  indices.scfIdIndex = headers.indexOf(t('Student') + " " + labelObject.class + " " + t('Folder') + ' Id');
   indices.sFnameIndex = sFnameIndex;
   indices.sLnameIndex = sLnameIndex;
   indices.sEmailIndex = sEmailIndex;
