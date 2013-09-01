@@ -1,11 +1,13 @@
 function bulkOperationsUi() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var properties = ScriptProperties.getProperties();
   var activeSheet = ss.getActiveSheet();
   var mode = ScriptProperties.getProperty('mode');
   var activeSheetId = activeSheet.getSheetId();
   var rosterSheet = getRosterSheet();
   var rosterSheetId = rosterSheet.getSheetId();
   var labelObject = this.labels();
+  var lang = properties.lang;
   if (activeSheetId==rosterSheetId) {
     var app = UiApp.createApplication().setTitle(t("Perform bulk student operations")).setHeight(450);
     var waitingPanel = app.createVerticalPanel().setId('waitingImage');
@@ -16,7 +18,7 @@ function bulkOperationsUi() {
     .setStyleAttribute('backgroundColor', 'white')
     .setStyleAttribute('top', '75px')
     .setStyleAttribute('left', '150px');
-    waitingPanel.add(app.createLabel(t('Please do not edit the roster sheet until script is finished operating on student rows.')));
+    waitingPanel.add(app.createLabel(t('Please do not edit the roster sheet until script is finished operating on student rows.', lang)));
     waitingPanel.add(waitingImage).setVisible(false);
     var panel = app.createVerticalPanel();
     var dataRange = rosterSheet.getDataRange();
@@ -28,14 +30,14 @@ function bulkOperationsUi() {
     if (topRow!=1) {
       var values = rosterSheet.getRange(topRow, 1, numRows, rosterSheet.getLastColumn()).getValues();
     } else {
-      var noneSelected = app.createLabel(t("You have not highlighted any rows in the spreadsheet. Please return to the roster sheet and highlight students, and then try the bulk operations menu item again."));
+      var noneSelected = app.createLabel(t("You have not highlighted any rows in the spreadsheet. Please return to the roster sheet and highlight students, and then try the bulk operations menu item again.", lang));
     }
     if (activeSheet.getSheetId()!=ScriptProperties.getProperty('sheetId')) {
-      var noneSelected = app.createLabel(t("You were not in the roster sheet when you selected the bulk operations menu item.  Please return to the roster sheet and highlight students, and then try the bulk operations menu item again."));
+      var noneSelected = app.createLabel(t("You were not in the roster sheet when you selected the bulk operations menu item.  Please return to the roster sheet and highlight students, and then try the bulk operations menu item again.", lang));
     }
     var topGrid = app.createGrid(1, 4);
-    topGrid.setWidget(0, 0, app.createLabel(t('First Name'))).setStyleAttribute(0, 0, 'width','150px').setStyleAttribute('backgroundColor', '#e5e5e5')
-    .setWidget(0, 1, app.createLabel(t('Last Name'))).setStyleAttribute(0, 1, 'width','150px')
+    topGrid.setWidget(0, 0, app.createLabel(t('First Name', lang))).setStyleAttribute(0, 0, 'width','150px').setStyleAttribute('backgroundColor', '#e5e5e5')
+    .setWidget(0, 1, app.createLabel(t('Last Name', lang))).setStyleAttribute(0, 1, 'width','150px')
     .setWidget(0, 2, app.createLabel(labelObject.class)).setStyleAttribute(0, 2, 'width','150px')
     .setWidget(0, 3, app.createLabel(labelObject.period)).setStyleAttribute(0, 3, 'width','150px');
     var grid = app.createGrid(values.length, 5);
@@ -91,10 +93,10 @@ function bulkOperationsUi() {
     .addItem(t('Add student aide'),'add aide||' + mode)
     .addItem(t('Move ') + labelObject.dropBox, 'move||' + mode);
     if (mode=='school') {
-      operationSelectList.addItem(t('Archive ') + labelObject.class + t(' and all ') + labelObject.dropBoxes, 'archive||' + mode);
+      operationSelectList.addItem(t('Archive ',lang) + labelObject.class + t(' and all ',lang) + labelObject.dropBoxes, 'archive||' + mode);
     }
     operationSelectList.addChangeHandler(changeHandler);
-    var operationDescriptor = app.createLabel(t("Removing students will archive their " + labelObject.class + " " + labelObject.dropBox + t(" and remove them from teacher ") + labelObject.dropBox + ", " + labelObject.class + t(" view, and ") + labelObject.class + t(" edit folders."))).setId('operationDescriptor');
+    var operationDescriptor = app.createLabel(t("Removing students will archive their ", lang) + labelObject.class + " " + labelObject.dropBox + t(" and remove them from teacher ", lang) + labelObject.dropBox + ", " + labelObject.class + t(" view, and ", lang) + labelObject.class + t(" edit folders.", lang)).setId('operationDescriptor');
     var operationSettingsPanel = app.createVerticalPanel().setId('operationSettingsPanel');
     operationSettingsPanel.add(operationDescriptor)
     var operationScroll = app.createScrollPanel(operationSettingsPanel).setHeight("140px").setWidth("100%").setStyleAttribute('backgroundColor', 'whiteSmoke').setStyleAttribute('margin', '8px');
@@ -102,7 +104,7 @@ function bulkOperationsUi() {
     .setWidget(1, 0, operationScroll);
     panel.add(operationSelectGrid);
     
-    var button = app.createButton(t('Run operation'));
+    var button = app.createButton(t('Run operation', lang));
     var buttonServerHandler = app.createServerHandler('bulkOperateOnStudents').addCallbackElement(panel);
     var buttonClientHandler = app.createClientHandler().forTargets(waitingPanel).setVisible(true).forTargets(panel).setStyleAttribute('opacity', '0.2').forTargets(button).setEnabled(false);
     button.addClickHandler(buttonServerHandler).addClickHandler(buttonClientHandler);
@@ -118,51 +120,68 @@ function bulkOperationsUi() {
 
 function refreshDescriptor(e) {
   var app = UiApp.getActiveApplication();
+  var properties = ScriptProperties.getProperties();
+  var lang = properties.lang;
   var operationSettingsPanel = app.getElementById('operationSettingsPanel');
   var descriptorLabel = app.getElementById('operationDescriptor');
   var operation = e.parameter.operation;
   var labelObject = this.labels();
   switch(operation)
   {
-    case t('remove||school'):
+    case 'remove||school':
       operationSettingsPanel.clear();
-      descriptorLabel.setText(t("Removing students will archive their") + " " + labelObject.dropBox + " " + t("and remove them from teacher") + " " + labelObject.dropBox + " " + t("folder,") + " " + labelObject.class + " " + t("view, and") + " " + labelObject.class + " " + t("edit folders.")).setStyleAttribute("margin","5px");
+      descriptorLabel.setText(t("Removing students will archive their", lang) + " " + labelObject.dropBox + " " + t("and remove them from teacher", lang) + " " + labelObject.dropBox + " " + t("folder,", lang) + " " + labelObject.class + " " + t("view, and", lang) + " " + labelObject.class + " " + t("edit folders.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       break;
-    case t('remove||teacher'):
+    case 'remove||teacher':
       operationSettingsPanel.clear();
-      descriptorLabel.setText(t("Removing students will archive their") + " " + labelObject.dropBox + " " + t("and remove them from teacher") + " " + labelObject.dropBox + " " + t("folder,") + " " + labelObject.class + " " + t("view, and") + " " + labelObject.class + " " + t("edit folders.")).setStyleAttribute("margin","5px");
+      descriptorLabel.setText(t("Removing students will archive their", lang) + " " + labelObject.dropBox + " " + t("and remove them from teacher", lang) + " " + labelObject.dropBox + " " + t("folder,", lang) + " " + labelObject.class + " " + t("view, and", lang) + " " + labelObject.class + " " + t("edit folders.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       break;
-    case t('add teacher||school'):
+    case 'add teacher||school':
       operationSettingsPanel.clear();
-      descriptorLabel.setText(t("Teacher will be added to all relevant") + " " + labelObject.class + " " + "folders and to all" + " " + labelObject.dropBoxes + " " + t("in any of the") + " " + labelObject.classes + " " + t("selected.")).setStyleAttribute("margin","5px");
-      operationSettingsPanel.add(descriptorLabel);
-      operationSettingsPanel.add(app.createLabel(t("Teacher email address")).setStyleAttribute("margin","5px"));
-      operationSettingsPanel.add(app.createTextBox().setName('tEmail').setStyleAttribute("margin","5px"));
-      break;
-    case t('add teacher||teacher'):
-      operationSettingsPanel.clear();
-      descriptorLabel.setText(t("Teacher will be added to all relevant") + " " + labelObject.class + " " + t("folders and to all") + " " + labelObject.dropBoxes + " " + t("in any of the") + " " + labelObject.classes + " " + t("selected.")).setStyleAttribute("margin","5px");
+      descriptorLabel.setText(t("Teacher will be added to all relevant", lang) + " " + labelObject.class + " " + "folders and to all" + " " + labelObject.dropBoxes + " " + t("in any of the", lang) + " " + labelObject.classes + " " + t("selected.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       operationSettingsPanel.add(app.createLabel(t("Teacher email address")).setStyleAttribute("margin","5px"));
       operationSettingsPanel.add(app.createTextBox().setName('tEmail').setStyleAttribute("margin","5px"));
       break;
-    case t('add aide||school'):
+    case 'add teacher||teacher':
       operationSettingsPanel.clear();
-      descriptorLabel.setText(t("School aide will be added only to the relevant") + " " + labelObject.dropBox + t(" as editor and to class edit and class view folders with the same privileges as student.")).setStyleAttribute("margin","5px");
-      operationSettingsPanel.add(descriptorLabel).setStyleAttribute("marginTop","5px");
-      operationSettingsPanel.add(app.createLabel(t("Student aide email address")).setStyleAttribute("margin","5px"));
+      descriptorLabel.setText(t("Teacher will be added to all relevant", lang) + " " + labelObject.class + " " + t("folders and to all", lang) + " " + labelObject.dropBoxes + " " + t("in any of the", lang) + " " + labelObject.classes + " " + t("selected.", lang)).setStyleAttribute("margin","5px");
+      operationSettingsPanel.add(descriptorLabel);
+      operationSettingsPanel.add(app.createLabel(t("Teacher email address", lang)).setStyleAttribute("margin","5px"));
       operationSettingsPanel.add(app.createTextBox().setName('tEmail').setStyleAttribute("margin","5px"));
       break;
-    case t('add aide||teacher'):
+    case 'add aide||school':
       operationSettingsPanel.clear();
-      descriptorLabel.setText(t("School aide will be added only to the relevant") + " " + labelObject.dropBox + t(" as editor and to class edit and class view folders with the same privileges as student.")).setStyleAttribute("margin","5px");
+      descriptorLabel.setText(t("School aide will be added only to the relevant", lang) + " " + labelObject.dropBox + t(" as editor and to class edit and class view folders with the same privileges as student.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel).setStyleAttribute("marginTop","5px");
-      operationSettingsPanel.add(app.createLabel(t("Student aide email address")).setStyleAttribute("margin","5px"));
+      operationSettingsPanel.add(app.createLabel(t("Student aide email address", lang)).setStyleAttribute("margin","5px"));
       operationSettingsPanel.add(app.createTextBox().setName('tEmail').setStyleAttribute("margin","5px"));
       break;
-    case t('move||school'):
+    case 'add aide||teacher':
+      operationSettingsPanel.clear();
+      descriptorLabel.setText(t("School aide will be added only to the relevant", lang) + " " + labelObject.dropBox + t(" as editor and to class edit and class view folders with the same privileges as student.", lang)).setStyleAttribute("margin","5px");
+      operationSettingsPanel.add(descriptorLabel).setStyleAttribute("marginTop","5px");
+      operationSettingsPanel.add(app.createLabel(t("Student aide email address", lang)).setStyleAttribute("margin","5px"));
+      operationSettingsPanel.add(app.createTextBox().setName('tEmail').setStyleAttribute("margin","5px"));
+      break;
+    case 'move||school':
+      operationSettingsPanel.clear();
+      var sheet = getRosterSheet();
+      var dataRange = sheet.getDataRange().getValues();
+      var indices = returnIndices(dataRange, labelObject);
+      var uniqueClasses = getUniqueClassPeriodObjects(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex);
+      descriptorLabel.setText(t("Moving", lang) + " " + labelObject.dropBoxes + " " + t("will preserve all work and place them in a new", lang) + " " + labelObject.class + " " + t("and", lang) + " " + labelObject.period + " " + labelObject.dropBox + " " + t("root, changing teacher and student access rights as necessary.", lang)).setStyleAttribute("margin","5px");
+      operationSettingsPanel.add(descriptorLabel);
+      operationSettingsPanel.add(app.createLabel(t('Destination', lang) + " " + labelObject.class + " / " + labelObject.period).setStyleAttribute("margin","5px"));
+      var sectionSelector = app.createListBox().setName('destinationRsfId').setStyleAttribute("margin","5px");
+      for (var i=0; i<uniqueClasses.length; i++) {
+        sectionSelector.addItem(uniqueClasses[i].classPer, uniqueClasses[i].classPer+"||"+uniqueClasses[i].rsfId);
+      }
+      operationSettingsPanel.add(sectionSelector);
+      break;
+    case 'move||teacher':
       operationSettingsPanel.clear();
       var sheet = getRosterSheet();
       var dataRange = sheet.getDataRange().getValues();
@@ -177,22 +196,7 @@ function refreshDescriptor(e) {
       }
       operationSettingsPanel.add(sectionSelector);
       break;
-    case t('move||teacher'):
-      operationSettingsPanel.clear();
-      var sheet = getRosterSheet();
-      var dataRange = sheet.getDataRange().getValues();
-      var indices = returnIndices(dataRange, labelObject);
-      var uniqueClasses = getUniqueClassPeriodObjects(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex);
-      descriptorLabel.setText(t("Moving") + " " + labelObject.dropBoxes + " " + t("will preserve all work and place them in a new") + " " + labelObject.class + " " + t("and") + " " + labelObject.period + " " + labelObject.dropBox + " " + t("root, changing teacher and student access rights as necessary.")).setStyleAttribute("margin","5px");
-      operationSettingsPanel.add(descriptorLabel);
-      operationSettingsPanel.add(app.createLabel(t('Destination') + " " + labelObject.class + " / " + labelObject.period).setStyleAttribute("margin","5px"));
-      var sectionSelector = app.createListBox().setName('destinationRsfId').setStyleAttribute("margin","5px");
-      for (var i=0; i<uniqueClasses.length; i++) {
-        sectionSelector.addItem(uniqueClasses[i].classPer, uniqueClasses[i].classPer+"||"+uniqueClasses[i].rsfId);
-      }
-      operationSettingsPanel.add(sectionSelector);
-      break;
-    case t('archive||school'):
+    case 'archive||school':
       
       break;
   }
@@ -203,6 +207,7 @@ function refreshDescriptor(e) {
 function bulkOperateOnStudents(e) {
   var timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   var properties = ScriptProperties.getProperties();
+  var lang = properties.lang;
   var app = UiApp.getActiveApplication();
   var operation = e.parameter.operation;
   var sheet = getRosterSheet();
@@ -246,7 +251,7 @@ function bulkOperateOnStudents(e) {
         var tfId = studentObjects[i]['tfId'];
         var scfId = studentObjects[i]['scfId'];
         var row =  studentObjects[i]['row']; 
-        var status = t('You may delete this row.') + " ";
+        var status = t('You may delete this row.', lang) + " ";
         //remove rights from class edit, class view
         var studentCourseFolder = DocsList.getFolderById(scfId);
         try {
@@ -269,7 +274,7 @@ function bulkOperateOnStudents(e) {
           status += t("Error moving") + " " + sEmail + " " + t("dropbox folder to") + "\"gClassFolders - " + t("Removed Students") + "\"" + t(" folder.") + " ";
         }
         try {
-          moveToStudentRoot(studentRoots, sEmail, sFName, sLName, dbfId, topActiveDBFolder, topDBArchiveFolder, 'archive');
+          moveToStudentRoot(studentRoots, sEmail, sFName, sLName, dbfId, topActiveDBFolder, topDBArchiveFolder, 'archive', lang);
           status += sEmail + t(" dropbox successfully archived. ");
         } catch(err) {
           status += t("Error removing") + " " + sEmail + " " + t("as editor on dropbox folder.");
@@ -292,7 +297,7 @@ function bulkOperateOnStudents(e) {
       topDBArchiveFolderId = properties.topDBArchiveFolderId;
       var date = Utilities.formatDate(new Date(), timeZone, "M/d/yy");
       for (var i=0; i<studentObjects.length; i++) {
-        var status = t('You may delete this row.') + " ";
+        var status = t('You may delete this row.', lang) + " ";
         var sFName = studentObjects[i]['sFName'];
         var sLName = studentObjects[i]['sLName'];
         var sEmail = studentObjects[i]['sEmail'];
@@ -351,7 +356,7 @@ function bulkOperateOnStudents(e) {
         var newTEmails = studentObjects[i]['tEmail'].replace(/\s/g, "").split(",");
         if (idsProcessed.indexOf(crfId)==-1) {
           try {
-            teacherRoots = moveToTeacherRoot(teacherRoots, tEmail, crfId, topActiveClassFolder, topClassArchiveFolder, 'active');
+            teacherRoots = moveToTeacherRoot(teacherRoots, tEmail, crfId, topActiveClassFolder, topClassArchiveFolder, 'active', lang);
             status += " " + t("now has") + clsName + clsPer + t("in active classes");
             DocsList.getFolderById(crfId).addEditor(tEmail);
             idsProcessed.push(crfId);
@@ -676,7 +681,7 @@ function bulkOperateOnStudents(e) {
         var destScf = DocsList.createFolder(destinationClass);
         destScf.addViewer(sEmail);
         var destScfId = destScf.getId();
-        studentRoots = moveToStudentRoot(studentRoots, sEmail, sFName, sLName, destScfId, topActiveDBFolder, topDBArchiveFolder, 'active');
+        studentRoots = moveToStudentRoot(studentRoots, sEmail, sFName, sLName, destScfId, topActiveDBFolder, topDBArchiveFolder, 'active', lang);
         var rootStuFolder = DocsList.getFolderById(rsfId);
         var dropBoxFolder = DocsList.getFolderById(dbfId);
         var destRootStuFolder = DocsList.getFolderById(destinationRsfId);
@@ -692,15 +697,15 @@ function bulkOperateOnStudents(e) {
         for (var k=0; k<destTeachers.length; k++) {
           dropBoxFolder.addEditor(destTeachers[k]);
         }
-        var comment = t("Moved from") + " " + clsName ;
+        var comment = t("Moved from", lang) + " " + clsName ;
         if ((clsPer)&&(clsPer!='')) {
           comment += " " + labelObject.period + " " + clsPer;
         }
-        comment += " " + t("to") + " " + destinationClass;
+        comment += " " + t("to", lang) + " " + destinationClass;
         if ((destinationPer)&&(destinationPer!='')) {
           comment += " " + labelObject.period + " " + destinationPer;
         }
-        comment += " " + t("by") + " " + this.userEmail + " " + t("on") + " " + Utilities.formatDate(new Date(), timeZone, 'M/d/yy');          
+        comment += " " + t("by", lang) + " " + this.userEmail + " " + t("on", lang) + " " + Utilities.formatDate(new Date(), timeZone, 'M/d/yy');          
         if ((destinationPer)&&(destinationPer!='')) {
           sheet.getRange(row,indices.clsPerIndex+1).setValue(destinationPer).setFontColor("blue").setComment(comment);
         }
@@ -725,6 +730,6 @@ function bulkOperateOnStudents(e) {
       return app;
       break;
     default:
-      Browser.msgBox(t("You have selected a feature that is not yet available"));
+      Browser.msgBox(t("You have selected a feature that is not yet available", lang));
   }
 }
