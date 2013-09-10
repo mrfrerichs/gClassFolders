@@ -171,7 +171,7 @@ function refreshDescriptor(e) {
       var sheet = getRosterSheet();
       var dataRange = sheet.getDataRange().getValues();
       var indices = returnIndices(dataRange, labelObject);
-      var uniqueClasses = getUniqueClassPeriodObjects(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex);
+      var uniqueClasses = getUniqueClassPeriodObjects(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex, labelObject);
       descriptorLabel.setText(t("Moving", lang) + " " + labelObject.dropBoxes + " " + t("will preserve all work and place them in a new", lang) + " " + labelObject.class + " " + t("and", lang) + " " + labelObject.period + " " + labelObject.dropBox + " " + t("root, changing teacher and student access rights as necessary.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       operationSettingsPanel.add(app.createLabel(t('Destination', lang) + " " + labelObject.class + " / " + labelObject.period).setStyleAttribute("margin","5px"));
@@ -186,7 +186,7 @@ function refreshDescriptor(e) {
       var sheet = getRosterSheet();
       var dataRange = sheet.getDataRange().getValues();
       var indices = returnIndices(dataRange, labelObject);
-      var uniqueClasses = getUniqueClassPeriodObjects(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex);
+      var uniqueClasses = getUniqueClassPeriodObjects(dataRange, indices.clsNameIndex, indices.clsPerIndex, indices.rsfIdIndex, labelObject);
       descriptorLabel.setText(t("Moving") + " " + labelObject.dropBoxes + " " + t("will preserve all work and place them in a new") + " " + labelObject.class + " " + t("and") + " " + labelObject.period + " " + labelObject.dropBox + " " + t("root, changing teacher and student access rights as necessary.")).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       operationSettingsPanel.add(app.createLabel(t('Destination') + " " + labelObject.class + " / " + labelObject.period).setStyleAttribute("margin","5px"));
@@ -197,7 +197,9 @@ function refreshDescriptor(e) {
       operationSettingsPanel.add(sectionSelector);
       break;
     case 'archive||school':
-      
+      operationSettingsPanel.clear();
+      descriptorLabel.setText(t("Archiving a class will archive all student", lang) + " " + labelObject.dropBox + " " + t(" and teacher folders for all rows (and all periods) with the same class name as the first row shown above", lang)).setStyleAttribute("margin","5px");
+      operationSettingsPanel.add(descriptorLabel);
       break;
   }
   return app;
@@ -215,6 +217,7 @@ function bulkOperateOnStudents(e) {
   var labelObject = this.labels();
   var indices = returnIndices(dataRange, labelObject);
   var numStudents = parseInt(e.parameter.numStudents);
+  var driveRoot = DocsList.getRootFolder();
   // var allPeriods = e.parameter.allPeriods;
   var studentObjects = [];
   for (var i=0; i<numStudents; i++) {
@@ -274,7 +277,7 @@ function bulkOperateOnStudents(e) {
           status += t("Error moving") + " " + sEmail + " " + t("dropbox folder to") + "\"gClassFolders - " + t("Removed Students") + "\"" + t(" folder.") + " ";
         }
         try {
-          moveToStudentRoot(studentRoots, sEmail, sFName, sLName, dbfId, topActiveDBFolder, topDBArchiveFolder, 'archive', lang);
+          moveToStudentRoot(studentRoots, sEmail, sFName, sLName, DocsList.getFolderById(dbfId), topActiveDBFolder, topDBArchiveFolder, 'archive', lang, driveRoot);
           status += sEmail + t(" dropbox successfully archived. ");
         } catch(err) {
           status += t("Error removing") + " " + sEmail + " " + t("as editor on dropbox folder.");
@@ -356,7 +359,7 @@ function bulkOperateOnStudents(e) {
         var newTEmails = studentObjects[i]['tEmail'].replace(/\s/g, "").split(",");
         if (idsProcessed.indexOf(crfId)==-1) {
           try {
-            teacherRoots = moveToTeacherRoot(teacherRoots, tEmail, crfId, topActiveClassFolder, topClassArchiveFolder, 'active', lang);
+            teacherRoots = moveToTeacherRoot(teacherRoots, tEmail, crfId, topActiveClassFolder, topClassArchiveFolder, 'active', lang, driveRoot);
             status += " " + t("now has") + clsName + clsPer + t("in active classes");
             DocsList.getFolderById(crfId).addEditor(tEmail);
             idsProcessed.push(crfId);
@@ -681,7 +684,7 @@ function bulkOperateOnStudents(e) {
         var destScf = DocsList.createFolder(destinationClass);
         destScf.addViewer(sEmail);
         var destScfId = destScf.getId();
-        studentRoots = moveToStudentRoot(studentRoots, sEmail, sFName, sLName, destScfId, topActiveDBFolder, topDBArchiveFolder, 'active', lang);
+        studentRoots = moveToStudentRoot(studentRoots, sEmail, sFName, sLName, DocsList.getFolderById(destScfId), topActiveDBFolder, topDBArchiveFolder, 'active', lang, driveRoot);
         var rootStuFolder = DocsList.getFolderById(rsfId);
         var dropBoxFolder = DocsList.getFolderById(dbfId);
         var destRootStuFolder = DocsList.getFolderById(destinationRsfId);
@@ -726,6 +729,60 @@ function bulkOperateOnStudents(e) {
       }
       oldStudentCourseFolder.setTrashed(true);
       destScf.removeFromFolder(DocsList.getRootFolder());
+      app.close();
+      return app;
+      break;
+    case 'archive||school': //note: still need to delete student class root folder, remove dropbox from student active folder, and 
+      var className = studentObjects[0]['clsName'];
+      var date = Utilities.formatDate(new Date(), timeZone, "M/d/yy");
+      var dataRange = sheet.getDataRange().getValues();
+      var indices = returnIndices(dataRange, labelObject);
+      var studentObjects = getClassRosterAsObjects(dataRange, indices, className);
+      Logger.log(Utilities.jsonStringify(studentObjects));
+      for (var i=0; i<studentObjects.length; i++) {
+        var status = '';
+        var sFName = studentObjects[i]['sFName'];
+        var sLName = studentObjects[i]['sLName'];
+        var sEmail = studentObjects[i]['sEmail'];
+        var dbfId = studentObjects[i]['dbfId'];
+        var crfId = studentObjects[i]['crfId'];
+        var cvfId = studentObjects[i]['cvfId'];
+        var cefId = studentObjects[i]['cefId']; 
+        var rsfId = studentObjects[i]['rsfId'];
+        var tfId = studentObjects[i]['tfId'];
+        var scfId = studentObjects[i]['scfId'];
+        var row =  studentObjects[i]['row']; 
+        var status = t('You may delete this row.', lang) + " ";
+        //remove rights from class edit, class view
+        var studentCourseFolder = DocsList.getFolderById(scfId);
+        try {
+          DocsList.getFolderById(cvfId).removeViewer(sEmail).removeFromFolder(studentCourseFolder);
+          DocsList.getFolderById(cefId).removeEditor(sEmail).removeFromFolder(studentCourseFolder);
+          status += sEmail + " " + t("removed from class view and edit folders.") + " ";
+        } catch(err) {
+          status += t("Error removing") + " " + sEmail + " " + t("from class view and class edit folders.") + " ";
+        }
+        try {
+          var dropboxFolder = DocsList.getFolderById(dbfId);
+          var currentDbName = dropboxFolder.getName() 
+          dropboxFolder.removeFromFolder(studentCourseFolder);
+          studentCourseFolder.setTrashed(true);
+          dropboxFolder.rename(currentDbName + " - " + t("Archived by") + " " + this.userEmail + ", " + date);
+          status += sEmail + " " + t("dropbox folder moved to student archive folder.") + " ";
+        } catch(err) {
+          status += t("Error moving") + " " + sEmail + " " + t("dropbox folder to") + "\"gClassFolders - " + t("Removed Students") + "\"" + t(" folder.") + " ";
+        }
+        try {
+          moveToStudentRoot(studentRoots, sEmail, sFName, sLName, DocsList.getFolderById(dbfId), topActiveDBFolder, topDBArchiveFolder, 'archive', lang, driveRoot);
+          status += sEmail + t(" dropbox successfully archived. ");
+        } catch(err) {
+          status += t("Error removing") + " " + sEmail + " " + t("as editor on dropbox folder.");
+        }
+        sheet.getRange(row, indices.sDropStatusIndex+1).setValue(status).setFontColor("red");
+        SpreadsheetApp.flush();
+      }
+      var results = getFolderRoots('tRoots');
+      moveToTeacherRoot(results, studentObjects[0]['tEmail'], studentObjects[0]['crfId'], topActiveClassFolder, topClassArchiveFolder, 'archive', lang, driveRoot);
       app.close();
       return app;
       break;
