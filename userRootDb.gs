@@ -31,7 +31,6 @@ function doGet(e) {
 
 
 function makeStudentRoots(sEmail, sFName, sLName, topActiveStudentFolder, topArchiveStudentFolder, lang) {
-  debugger;
   try {
     var activeFolder = topActiveStudentFolder.createFolder(sLName +", "+ sFName + t(" Current Classes", lang));
     var archiveFolder = topArchiveStudentFolder.createFolder(sLName +", "+ sFName + t(" Class Work Archives", lang));
@@ -99,11 +98,14 @@ function makeTeacherRoots(tEmail, topActiveTeacherFolder, topArchiveTeacherFolde
 // folderId is the if of the folder to be added to the student root folder 
 // topFolder is the folder on the script owner account to organize roots under
 // results is the array of db objects containing existing student roots
-function moveToStudentRoot(results, sEmail, sFName, sLName, folderId, topActiveDBFolder, topDBArchiveFolder, type, lang) {
+function moveToStudentRoot(results, sEmail, sFName, sLName, folder, topActiveDBFolder, topDBArchiveFolder, type, lang, driveRoot) {
   var found = false;
   var activeRootId = '';
   var archiveRootId = '';
-  var folder = DocsList.getFolderById(folderId);
+ // var folder = DocsList.getFolderById(folderId);
+  if (type == "active") {
+    folder.removeFromFolder(driveRoot);
+  }
   for (var i=0; i<results.length; i++) {
     if (results[i].email == sEmail) {
       found = true;
@@ -131,7 +133,6 @@ function moveToStudentRoot(results, sEmail, sFName, sLName, folderId, topActiveD
   if (type == 'active') {
     var activeFolder = DocsList.getFolderById(studentRootFolders.activeFolderId);
     folder.addToFolder(activeFolder);
-    folder.removeFromFolder(DocsList.getRootFolder());
   }
   return results;
 }
@@ -141,9 +142,12 @@ function moveToStudentRoot(results, sEmail, sFName, sLName, folderId, topActiveD
 // folder is the folder to be added to the student root folder 
 // topFolder is the folder on the script owner account to organize roots under
 // results is the array of db objects containing existing student roots
-function moveToTeacherRoot(results, tEmail, folderId, topActiveTeacherFolder, topArchiveTeacherFolder, type, lang) {
+function moveToTeacherRoot(results, tEmail, folderId, topActiveTeacherFolder, topArchiveTeacherFolder, type, lang, driveRoot) {
   var found = false;
   var folder = DocsList.getFolderById(folderId);
+  if (type == "active") {
+    folder.removeFromFolder(driveRoot);
+  }
   var activeRootId = '';
   var archiveRootId = '';
   for (var i=0; i<results.length; i++) {
@@ -169,7 +173,6 @@ function moveToTeacherRoot(results, tEmail, folderId, topActiveTeacherFolder, to
   }
   if (type == 'active') { 
     folder.addToFolder(activeFolder);
-    folder.removeFromFolder(DocsList.getRootFolder());
   }
   return results;
 }
