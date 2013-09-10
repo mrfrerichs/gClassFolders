@@ -198,7 +198,7 @@ function refreshDescriptor(e) {
       break;
     case 'archive||school':
       operationSettingsPanel.clear();
-      descriptorLabel.setText(t("Archiving a class will archive all student", lang) + " " + labelObject.dropBox + " " + t(" and teacher folders for all rows (and all periods) with the same class name as the first row shown above", lang)).setStyleAttribute("margin","5px");
+      descriptorLabel.setText(t("Archiving a class will archive all student", lang) + " " + labelObject.dropBox + " " + t(" and teacher folders for all rows (and all periods) for the enire, SINGLE class as shown on the first row above.  At the moment, this function must be used one class at a time.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       break;
   }
@@ -738,7 +738,6 @@ function bulkOperateOnStudents(e) {
       var dataRange = sheet.getDataRange().getValues();
       var indices = returnIndices(dataRange, labelObject);
       var studentObjects = getClassRosterAsObjects(dataRange, indices, className);
-      Logger.log(Utilities.jsonStringify(studentObjects));
       for (var i=0; i<studentObjects.length; i++) {
         var status = '';
         var sFName = studentObjects[i]['sFName'];
