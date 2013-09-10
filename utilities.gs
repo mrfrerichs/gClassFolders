@@ -112,6 +112,54 @@ function getClassRoster(dataRange, indices, className, per) {
   return classRows;
 }
 
+
+function getClassRosterAsObjects(dataRange, indices, className, per) {
+  var crfId = ''; // class root folder id
+  var rsfId = ''; // root student folder id
+  var cefId = ''; // class edit folder id
+  var cvfId = ''; // class view folder id
+  var classRows = [];
+  var rowNums = [];
+  for (var i=1; i<dataRange.length; i++) {
+    if (per) {
+      if((dataRange[i][indices.clsNameIndex]==className)&&(dataRange[i][indices.clsPerIndex]==per)) {
+        classRows.push(dataRange[i]);
+        rowNums.push(i+1);
+      }
+    }
+    if ((!per)||(per=='')) {
+      if(dataRange[i][indices.clsNameIndex]==className) {
+        classRows.push(dataRange[i]);
+        rowNums.push(i+1);
+      }
+    }
+  }
+  var studentObjects = [];
+  for (var i=0; i<classRows.length; i++) {
+    studentObjects[i] = new Object();
+    studentObjects[i]['sFName'] = classRows[i][indices.sFnameIndex];
+    studentObjects[i]['sLName'] = classRows[i][indices.sLnameIndex];
+    studentObjects[i]['sEmail'] = classRows[i][indices.sEmailIndex];
+    studentObjects[i]['dbfId'] = classRows[i][indices.dbfIdIndex]; 
+    studentObjects[i]['cvfId'] = classRows[i][indices.cvfIdIndex]; 
+    studentObjects[i]['cefId'] = classRows[i][indices.cefIdIndex];
+    studentObjects[i]['rsfId'] = classRows[i][indices.rsfIdIndex];
+    studentObjects[i]['crfId'] = classRows[i][indices.crfIdIndex];
+    studentObjects[i]['tfId'] = classRows[i][indices.tfIdIndex];
+    if (indices.scfIdIndex!=-1) {
+      studentObjects[i]['scfId'] = classRows[i][indices.scfIdIndex];
+    }
+    studentObjects[i]['clsName'] = classRows[i][indices.clsNameIndex];
+    studentObjects[i]['clsPer'] = classRows[i][indices.clsPerIndex];
+    studentObjects[i]['tEmail'] = classRows[i][indices.tEmailIndex];
+    studentObjects[i]['row'] = rowNums[i];
+  }
+  return studentObjects;
+}
+
+
+
+
 function getClassFolderId(classRoster, folderIndex) {
   var folderId="";
   for (var i=1; i<classRoster.length; i++) {
@@ -186,14 +234,14 @@ function getTeacherEmailsByRSF(dataRange, rsfId, rsfIdIndex, tEmailIndex) {
 
 
 
-function getUniqueClassPeriodObjects(dataRange, clsNameIndex, clsPerIndex, rsfIdIndex) {
+function getUniqueClassPeriodObjects(dataRange, clsNameIndex, clsPerIndex, rsfIdIndex, labelObj) {
   var classPers = [];
   var processed = [];
   var k = 0;
   for (var i=1; i<dataRange.length; i++) {
     var thisClassPer = dataRange[i][clsNameIndex];
     if (dataRange[i][clsPerIndex]!='') {
-      thisClassPer += " " + this.labels.period + " " + dataRange[i][clsPerIndex];
+      thisClassPer += " " + labelObj.period + " " + dataRange[i][clsPerIndex];
     }
     var thisStudentRoot = dataRange[i][rsfIdIndex];
     if ((processed.indexOf(thisClassPer)==-1)&&(thisClassPer!='')&&(thisStudentRoot!='')) {
