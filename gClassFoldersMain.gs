@@ -1,7 +1,7 @@
 // gClassFolders
 // Original resource by EdListen.com 
 // Original Author: Bjorn Behrendt bj@edlisten.com
-// Version 2.0.4 (4/11/2013) a collaboration with Andrew Stillman astillman@gmail.com and YouPD.org, a project of New Visions for Public Schools.
+// Version 2.1.2-dev (9/9/2013) a collaboration with Andrew Stillman astillman@gmail.com and YouPD.org, a project of New Visions for Public Schools.
 // Published under GNU General Public License, version 3 (GPL-3.0)
 // See restrictions at http://www.opensource.org/licenses/gpl-3.0.html
 
@@ -432,6 +432,7 @@ function createClassFolders(){ //Create student folders
     var labelObject = this.labels();
     var indices = returnIndices(dataRange, labelObject);
     var lang = properties.lang;
+    var driveRoot = DocsList.getRootFolder();
     
     //get the top folder for active DBs, course folders, and archived course folders
     if (properties.mode == "school") {
@@ -521,7 +522,7 @@ function createClassFolders(){ //Create student folders
     var interrupted = false;
     for (var i = 1; i < dataRange.length; i++) { //commence loop through all student class/period entries
       var loopStart = new Date().getTime();
-      if ((loopStart - startTime)>340000) {
+      if ((loopStart - startTime)>310000) {
         setResumeTrigger(lock);
         interrupted = true;
         break;
@@ -578,14 +579,14 @@ function createClassFolders(){ //Create student folders
           clsFoldersCreated.push(clsName);
           var classEdit = clsName +" - " + t("Edit", lang);  
           var classView = clsName +" - " + t("View", lang); 
-          var teacherFolderLabel = t("Teacher", lang);
+          var teacherFolderLabel = clsName + " - " + t("Teacher", lang);
           var tMessage = t("Folders created for", lang) + " " + clsName;
           //treat the first listed teacher email as primary...allow secondary teachers to be added
           for (var j=0; j<tEmails.length; j++) {//Transfer ownership of rootFolder to teacher if teacher email is designated.  Check that designated email is not the user running the script.
             try {
               if (properties.mode=='school') {
                 //teacherRoots is an array of objects, retrieved from scriptDb store, containing the folder Ids of all teacher root folders (active and archived).
-                teacherRoots = moveToTeacherRoot(teacherRoots, tEmails[j], clsFolderId, topActiveClassFolder, topClassArchiveFolder, 'active', lang);
+                teacherRoots = moveToTeacherRoot(teacherRoots, tEmails[j], clsFolderId, topActiveClassFolder, topClassArchiveFolder, 'active', lang, driveRoot);
                 //function above is used to create new teacher roots for users that don't yet have them and transfer a given folder
                 //into the active or archive root folder.  This is only ever used in school mode.
               } 
@@ -683,7 +684,7 @@ function createClassFolders(){ //Create student folders
         var dbfId = dataRange[i][indices.dbfIdIndex];
         var studentFolderObj = createDropbox(sLname,sFname,sEmail,clsName,classEditId,classViewId,rootStuFolderId,tEmails, userEmail, properties, dropBoxLabel, lang);
         if (properties.mode == 'school') {
-          studentRoots = moveToStudentRoot(studentRoots, sEmail, sFname, sLname, studentFolderObj.studentClassRootId, topActiveDBFolder, topDBArchiveFolder, 'active', lang);
+          studentRoots = moveToStudentRoot(studentRoots, sEmail, sFname, sLname, studentFolderObj.studentClassRoot, topActiveDBFolder, topDBArchiveFolder, 'active', lang, driveRoot);
         }
         studentFoldersCreated++;
         var values = [];
@@ -712,7 +713,7 @@ function createClassFolders(){ //Create student folders
         }
         
         //add Status 
-        sheet.getRange(i+1, indices.sDropStatusIndex+1).setValue(studentFolderObj.statusTagF);
+        sheet.getRange(i+1, indices.sDropStatusIndex+1).setValue(studentFolderObj.statusTagF).setFontColor('black');
         SpreadsheetApp.flush();
       }
     }//end loop through all student class/period entries
