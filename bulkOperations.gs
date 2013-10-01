@@ -91,7 +91,8 @@ function bulkOperationsUi() {
     operationSelectList.addItem(t('Remove from ') + labelObject.class, 'remove||' + mode)
     .addItem(t('Add teacher to ') + labelObject.class, 'add teacher||' + mode)
     .addItem(t('Add student aide'),'add aide||' + mode)
-    .addItem(t('Move ') + labelObject.dropBox, 'move||' + mode);
+    .addItem(t('Move ') + labelObject.dropBox, 'move||' + mode)
+    .addItem(t('Re-email Student Activation ') , 'email||' + mode);;
     if (mode=='school') {
       operationSelectList.addItem(t('Archive ',lang) + labelObject.class + t(' and all ',lang) + labelObject.dropBoxes, 'archive||' + mode);
     }
@@ -199,6 +200,16 @@ function refreshDescriptor(e) {
     case 'archive||school':
       operationSettingsPanel.clear();
       descriptorLabel.setText(t("Archiving a class will archive all student", lang) + " " + labelObject.dropBox + " " + t(" and teacher folders for all rows (and all periods) for the enire, SINGLE class as shown on the first row above.  At the moment, this function must be used one class at a time.", lang)).setStyleAttribute("margin","5px");
+      operationSettingsPanel.add(descriptorLabel);
+      break;
+    case 'email||school':
+      operationSettingsPanel.clear();
+      descriptorLabel.setText(t("Re-emailing student activations will re-send the activation email to those students selected.", lang)).setStyleAttribute("margin","5px");
+      operationSettingsPanel.add(descriptorLabel);
+      break;
+    case 'email||teacher':
+      operationSettingsPanel.clear();
+      descriptorLabel.setText(t("Re-emailing student activations will re-send the activation email to those students selected.", lang)).setStyleAttribute("margin","5px");
       operationSettingsPanel.add(descriptorLabel);
       break;
   }
@@ -785,7 +796,75 @@ function bulkOperateOnStudents(e) {
       app.close();
       return app;
       break;
+    case 'email||school':
+      var date = Utilities.formatDate(new Date(), timeZone, "M/d/yy");
+      for (var i=0; i<studentObjects.length; i++) {
+        var status = '';
+        var sFName = studentObjects[i]['sFName'];
+        var sLName = studentObjects[i]['sLName'];
+        var sEmail = studentObjects[i]['sEmail'];
+        var dbfId = studentObjects[i]['dbfId'];
+        var cvfId = studentObjects[i]['cvfId'];
+        var cefId = studentObjects[i]['cefId']; 
+        var rsfId = studentObjects[i]['rsfId'];
+        var tfId = studentObjects[i]['tfId'];
+        var scfId = studentObjects[i]['scfId'];
+        var row =  studentObjects[i]['row'];
+        for (var j=0; i<studentRoots.length; j++) {
+          if (studentRoots[j].email == sEmail) {
+            var activeFolderId = studentRoots[j].activeFolderId;
+            var archiveFolderId = studentRoots[j].archiveFolderId;
+            break;
+          }
+        }
+        var scriptUrl = ScriptApp.getService().getUrl();
+        if (scriptUrl) {
+          var body = t("Course folders have recently been created and shared with you by ", lang) + this.userEmail + "."; 
+          body += t("One folder is for your 'Active' classes, the other is for ", lang);
+          body += t("'Archived,' or old classes, and will be used in the future to keep your old work organized.", lang) + "<br>";
+          body += t("Please", lang) + "<a href=\"" + scriptUrl + "?activeFolderId=" + activeFolderId + "&archiveFolderId=" + archiveFolderId + "\">" + t('click this link', lang) + "</a> " + t("and you authorize the script to run, and you should see these folders added to your Drive.", lang);
+          body += "<br>" + t("Note: You may need to refresh your browser once for this to work.", lang);
+          MailApp.sendEmail(sEmail, t('Action required: Please add your class folders to your Drive', lang),'', {htmlBody: body})
+        }
+      }
+      app.close();
+      return app;
+      break;
+    case 'email||teacher':
+      var date = Utilities.formatDate(new Date(), timeZone, "M/d/yy");
+      for (var i=0; i<studentObjects.length; i++) {
+        var status = '';
+        var sFName = studentObjects[i]['sFName'];
+        var sLName = studentObjects[i]['sLName'];
+        var sEmail = studentObjects[i]['sEmail'];
+        var dbfId = studentObjects[i]['dbfId'];
+        var cvfId = studentObjects[i]['cvfId'];
+        var cefId = studentObjects[i]['cefId']; 
+        var rsfId = studentObjects[i]['rsfId'];
+        var tfId = studentObjects[i]['tfId'];
+        var scfId = studentObjects[i]['scfId'];
+        var row =  studentObjects[i]['row'];
+        for (var j=0; i<studentRoots.length; j++) {
+          if (studentRoots[j].email == sEmail) {
+            var activeFolderId = studentRoots[j].activeFolderId;
+            var archiveFolderId = studentRoots[j].archiveFolderId;
+            break;
+          }
+        }
+        var scriptUrl = ScriptApp.getService().getUrl();
+        if (scriptUrl) {
+          var body = t("Course folders have recently been created and shared with you by ", lang) + this.userEmail + "."; 
+          body += t("One folder is for your 'Active' classes, the other is for ", lang);
+          body += t("'Archived,' or old classes, and will be used in the future to keep your old work organized.", lang) + "<br>";
+          body += t("Please", lang) + "<a href=\"" + scriptUrl + "?activeFolderId=" + activeFolderId + "&archiveFolderId=" + archiveFolderId + "\">" + t('click this link', lang) + "</a> " + t("and you authorize the script to run, and you should see these folders added to your Drive.", lang);
+          body += "<br>" + t("Note: You may need to refresh your browser once for this to work.", lang);
+          MailApp.sendEmail(sEmail, t('Action required: Please add your class folders to your Drive', lang),'', {htmlBody: body})
+        }
+      }
+      app.close();
+      return app;
+      break;
     default:
-      Browser.msgBox(t("You have selected a feature that is not yet available", lang));
+        Browser.msgBox(t("You have selected a feature that is not yet available", lang));
   }
 }
